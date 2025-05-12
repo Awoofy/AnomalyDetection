@@ -29,7 +29,7 @@ git clone https://github.com/yourusername/AnomalyDetection.git
 cd AnomalyDetection
 ```
 
-2. 依存パッケージのインストール
+2. バックエンド依存パッケージのインストール
 ```bash
 pip install -r docker/requirements.txt
 ```
@@ -37,6 +37,24 @@ pip install -r docker/requirements.txt
 3. 環境変数の設定
 ```bash
 export CAMERA_ID=1  # お使いのカメラIDに応じて設定
+```
+
+### フロントエンド開発環境のセットアップ
+
+1. Node.js環境の準備
+2. 依存パッケージのインストール
+```bash
+npm install
+```
+
+3. 開発サーバーの起動
+```bash
+docker compose up
+```
+
+4. TypeScriptファイルの変更を監視
+```bash
+npm run watch
 ```
 
 ### Docker環境での実行

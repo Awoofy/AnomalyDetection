@@ -104,3 +104,20 @@ async def capture_frame():
 - フレームバッファのスレッドセーフな処理
 - 非同期I/Oによる効率的なファイル保存
 - メモリ使用量の最適化（フレームのディープコピー）
+
+## フロントエンド実装（TypeScript）
+
+### 開発環境
+- TypeScript + Webpack構成
+- 型安全性の確保
+- モジュール化されたコード構造
+
+### コードの構成
+- src/static/scripts/camera.ts: カメラ制御
+- src/static/scripts/main.ts: メインの処理
+- webpack.config.js: ビルド設定
+
+### ビルドプロセス
+1. TypeScriptコードのコンパイル
+2. Webpackでのバンドル
+3. 最適化された単一JSファイルの生成
