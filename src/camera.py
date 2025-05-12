@@ -1,0 +1,75 @@
+import cv2
+import numpy as np
+from threading import Thread, Lock
+import time
+
+class Camera:
+    def __init__(self, camera_id=0):
+        """カメラクラスの初期化"""
+        self.camera_id = camera_id
+        self.is_running = False
+        self.lock = Lock()
+        self.frame = None
+        self.cap = None
+        self.thread = None  # スレッドの初期化を追加
+
+    def start(self):
+        """カメラのキャプチャを開始"""
+        if self.is_running:
+            return
+
+        try:
+            self.cap = cv2.VideoCapture(self.camera_id)
+            if not self.cap.isOpened():
+                raise RuntimeError(f"カメラID {self.camera_id} を開けません")
+            
+            self.is_running = True
+            self.thread = Thread(target=self._capture_loop, daemon=True)
+            self.thread.start()
+        except Exception as e:
+            if self.cap:
+                self.cap.release()
+                self.cap = None
+            raise RuntimeError(f"カメラの初期化に失敗しました: {str(e)}")
+
+    def stop(self):
+        """カメラのキャプチャを停止"""
+        self.is_running = False
+        if self.thread:
+            self.thread.join()
+        if self.cap:
+            self.cap.release()
+
+    def _capture_loop(self):
+        """カメラからフレームを継続的に取得"""
+        while self.is_running:
+            ret, frame = self.cap.read()
+            if not ret:
+                continue
+
+            with self.lock:
+                self.frame = frame
+            time.sleep(0.01)  # CPU使用率を抑制
+
+    def get_frame(self):
+        """現在のフレームを取得"""
+        with self.lock:
+            if self.frame is None:
+                return None
+            return self.frame.copy()
+
+    def get_jpeg(self, quality=95):
+        """現在のフレームをJPEG形式で取得"""
+        frame = self.get_frame()
+        if frame is None:
+            return None
+        
+        ret, jpeg = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, quality])
+        if not ret:
+            return None
+            
+        return jpeg.tobytes()
+
+    def __del__(self):
+        """デストラクタ: リソースの解放"""
+        self.stop()

@@ -1,0 +1,25 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    volumes:
+      - ./src:/app/src
+      - ./tests:/app/tests
+      - ./docker/requirements.txt:/app/requirements.txt
+    # カメラデバイスをコンテナに渡す
+    devices:
+      - /dev/video0:/dev/video0
+      - /dev/video1:/dev/video1
+      - /dev/video2:/dev/video2
+      - /dev/video3:/dev/video3
+    privileged: true  # カメラアクセスに必要な権限
+    group_add:
+      - video  # ビデオデバイスグループに追加
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONPATH=/app
+      - DISPLAY=${DISPLAY}  # X11表示用（デバッグ時に必要）
+      - CAMERA_ID=0  # /dev/video0 を使用
+    restart: unless-stopped
