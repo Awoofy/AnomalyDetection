@@ -1,7 +1,10 @@
 from fastapi import FastAPI, Response
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse
 import asyncio
+from datetime import datetime
+import os
+from pathlib import Path
 from .camera import Camera
 
 app = FastAPI()
@@ -10,8 +13,13 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory="src/static"), name="static")
 
 # カメラインスタンスの初期化（環境変数からカメラIDを取得）
-import os
+# 環境変数の設定
 camera_id = int(os.getenv('CAMERA_ID', '1'))  # デフォルトでvideo1を使用
+CAPTURE_DIR = os.getenv('CAPTURE_DIR', 'captures')  # キャプチャ画像の保存ディレクトリ
+
+# キャプチャディレクトリの作成
+Path(CAPTURE_DIR).mkdir(parents=True, exist_ok=True)
+
 camera = Camera(camera_id=camera_id)
 
 @app.on_event("startup")
@@ -47,6 +55,27 @@ async def video_feed():
         mjpeg_generator(),
         media_type="multipart/x-mixed-replace; boundary=frame"
     )
+
+@app.post("/capture")
+async def capture():
+    """
+    現在のフレームをキャプチャして保存
+    """
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"capture_{timestamp}.jpg"
+    save_path = str(Path(CAPTURE_DIR) / filename)
+    
+    if camera.capture_image(save_path):
+        return JSONResponse({
+            "status": "success",
+            "message": "画像を保存しました",
+            "filename": filename
+        })
+    else:
+        return JSONResponse({
+            "status": "error",
+            "message": "画像の保存に失敗しました"
+        }, status_code=500)
 
 if __name__ == "__main__":
     import uvicorn

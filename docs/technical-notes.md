@@ -69,3 +69,38 @@ with self.lock:
 - フレームレートの動的調整
 - 画質の自動調整
 - 負荷分散処理
+
+## キャプチャ機能の実装
+
+### 基本設計
+- スペースキーイベントのキャプチャと処理
+- フレームバッファからの画像取得
+- タイムスタンプ生成による一意なファイル名作成
+- 非同期での画像保存処理
+
+### 実装の詳細
+```python
+# フレームキャプチャ処理
+async def capture_frame():
+    with frame_lock:
+        frame = current_frame.copy()
+    
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"capture_{timestamp}.jpg"
+    
+    # 非同期でファイル保存
+    await asyncio.to_thread(cv2.imwrite,
+        f"captures/{filename}", frame)
+```
+
+### イベント処理の流れ
+1. クライアントからのキーイベント受信（WebSocket）
+2. サーバーサイドでのフレーム取得
+3. タイムスタンプ生成とファイル名作成
+4. 非同期での画像保存処理
+5. クライアントへの保存完了通知
+
+### 最適化ポイント
+- フレームバッファのスレッドセーフな処理
+- 非同期I/Oによる効率的なファイル保存
+- メモリ使用量の最適化（フレームのディープコピー）

@@ -31,6 +31,7 @@
             width: 100%;
             display: flex;
             justify-content: center;
+            position: relative;
         }
         img {
             max-width: 100%;
@@ -42,6 +43,34 @@
             text-align: center;
             color: #666;
         }
+        .capture-button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        .capture-button:hover {
+            background-color: #0056b3;
+        }
+        .flash {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: white;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.1s;
+        }
+        .flash.active {
+            opacity: 0.8;
+        }
     </style>
 </head>
 <body>
@@ -49,10 +78,54 @@
         <h1>カメラストリーミング</h1>
         <div class="video-container">
             <img src="/video_feed" alt="カメラストリーム">
+            <div class="flash"></div>
         </div>
         <div class="status">
             ストリーミング中...
         </div>
+        <button class="capture-button" onclick="captureImage()">
+            キャプチャ (Space)
+        </button>
     </div>
+
+    <script>
+        // フラッシュエフェクトの制御
+        function showFlash() {
+            const flash = document.querySelector('.flash');
+            flash.classList.add('active');
+            setTimeout(() => flash.classList.remove('active'), 150);
+        }
+
+        // キャプチャ処理
+        async function captureImage() {
+            try {
+                showFlash();
+                const response = await fetch('/capture', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    document.querySelector('.status').textContent =
+                        `キャプチャ成功: ${data.filename}`;
+                } else {
+                    document.querySelector('.status').textContent =
+                        'キャプチャに失敗しました';
+                }
+            } catch (error) {
+                console.error('キャプチャエラー:', error);
+                document.querySelector('.status').textContent =
+                    'キャプチャ中にエラーが発生しました';
+            }
+        }
+
+        // スペースキーの検出
+        document.addEventListener('keydown', (event) => {
+            if (event.code === 'Space' && !event.repeat) {
+                event.preventDefault();  // スクロール防止
+                captureImage();
+            }
+        });
+    </script>
 </body>
 </html>

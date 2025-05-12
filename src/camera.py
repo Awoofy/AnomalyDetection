@@ -70,6 +70,25 @@ class Camera:
             
         return jpeg.tobytes()
 
+    def capture_image(self, save_path):
+        """
+        現在のフレームを画像として保存
+        Args:
+            save_path (str): 保存するファイルパス
+        Returns:
+            bool: 保存に成功したらTrue、失敗したらFalse
+        """
+        frame = self.get_frame()
+        if frame is None:
+            return False
+            
+        try:
+            # 画像を保存
+            return cv2.imwrite(save_path, frame)
+        except Exception as e:
+            print(f"画像の保存に失敗: {str(e)}")
+            return False
+
     def __del__(self):
         """デストラクタ: リソースの解放"""
         self.stop()

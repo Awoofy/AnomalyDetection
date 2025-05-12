@@ -3,10 +3,12 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
+    user: "${UID:-1000}:${GID:-1000}"  # ホストユーザーのUID/GIDを使用
     volumes:
       - ./src:/app/src
       - ./tests:/app/tests
       - ./docker/requirements.txt:/app/requirements.txt
+      - ./captures:/app/captures  # キャプチャディレクトリをマウント
     # カメラデバイスをコンテナに渡す
     devices:
       - /dev/video0:/dev/video0
