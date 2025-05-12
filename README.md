@@ -1,1 +1,63 @@
 # AnomalyDetection
+
+画像認識AIを活用した異常検知システム。リアルタイムカメラストリーミングとAI分析を組み合わせた監視システムです。
+
+## 機能
+
+- リアルタイムカメラストリーミング
+- Webブラウザでの映像確認
+- 低レイテンシーなMJPEGストリーミング
+- マルチスレッドによる効率的な処理
+
+## セットアップ
+
+### 必要条件
+
+- Python 3.8以上
+- OpenCV
+- FastAPI
+- uvicorn
+
+### インストール手順
+
+1. リポジトリのクローン
+```bash
+git clone https://github.com/yourusername/AnomalyDetection.git
+cd AnomalyDetection
+```
+
+2. 依存パッケージのインストール
+```bash
+pip install -r docker/requirements.txt
+```
+
+3. 環境変数の設定
+```bash
+export CAMERA_ID=1  # お使いのカメラIDに応じて設定
+```
+
+### Docker環境での実行
+
+```bash
+docker compose up --build
+```
+
+## 使用方法
+
+1. サーバーの起動
+```bash
+python -m src.main
+```
+
+2. ブラウザでアクセス
+```
+http://localhost:8000
+```
+
+## 技術詳細
+
+システムの技術的な詳細については、[技術解説書](docs/technical-notes.md)をご参照ください。
+
+## ライセンス
+
+MIT License
