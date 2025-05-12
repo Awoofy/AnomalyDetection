@@ -83,49 +83,10 @@
         <div class="status">
             ストリーミング中...
         </div>
-        <button class="capture-button" onclick="captureImage()">
+        <button class="capture-button">
             キャプチャ (Space)
         </button>
     </div>
-
-    <script>
-        // フラッシュエフェクトの制御
-        function showFlash() {
-            const flash = document.querySelector('.flash');
-            flash.classList.add('active');
-            setTimeout(() => flash.classList.remove('active'), 150);
-        }
-
-        // キャプチャ処理
-        async function captureImage() {
-            try {
-                showFlash();
-                const response = await fetch('/capture', {
-                    method: 'POST'
-                });
-                const data = await response.json();
-                
-                if (data.status === 'success') {
-                    document.querySelector('.status').textContent =
-                        `キャプチャ成功: ${data.filename}`;
-                } else {
-                    document.querySelector('.status').textContent =
-                        'キャプチャに失敗しました';
-                }
-            } catch (error) {
-                console.error('キャプチャエラー:', error);
-                document.querySelector('.status').textContent =
-                    'キャプチャ中にエラーが発生しました';
-            }
-        }
-
-        // スペースキーの検出
-        document.addEventListener('keydown', (event) => {
-            if (event.code === 'Space' && !event.repeat) {
-                event.preventDefault();  // スクロール防止
-                captureImage();
-            }
-        });
-    </script>
+    <script src="dist/bundle.js"></script>
 </body>
 </html>

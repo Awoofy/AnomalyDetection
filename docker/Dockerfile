@@ -7,10 +7,28 @@ RUN apt-get update && apt-get install -y \
     libsm6 \
     libxext6 \
     libxrender-dev \
+    curl \
+    gnupg \
     && rm -rf /var/lib/apt/lists/*
+
+# Node.jsをインストール
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/*
 
 # 作業ディレクトリを設定
 WORKDIR /app
+
+# npmのキャッシュディレクトリを作成し、パーミッションを設定
+RUN mkdir -p /app/.npm && \
+    chown -R 1000:1000 /app/.npm
+
+# package.jsonとTypeScript設定ファイルをコピー
+COPY package.json tsconfig.json webpack.config.js ./
+
+# node_modulesディレクトリを作成し、パーミッションを設定
+RUN mkdir -p /app/node_modules && \
+    chown -R 1000:1000 /app/node_modules
 
 # requirements.txtをコピー
 COPY docker/requirements.txt .
@@ -19,6 +37,14 @@ COPY docker/requirements.txt .
 ENV PYTHON_ENV=development
 RUN python -m pip install -U pip uv && \
     uv pip install --system --no-cache -r requirements.txt
+
+# ソースコードをコピー
+COPY src ./src
+
+# TypeScriptをビルド
+RUN npm install && \
+    npm run build && \
+    chown -R 1000:1000 /app
 
 # 開発用ポートを公開
 EXPOSE 8000
