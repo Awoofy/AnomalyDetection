@@ -72,12 +72,39 @@
             opacity: 0.8;
         }
     </style>
+    <style>
+        .camera-controls {
+            margin: 1rem 0;
+            width: 100%;
+        }
+        
+        .camera-controls select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .status.error {
+            background-color: #fee;
+            color: #c00;
+            padding: 0.5rem;
+            border-radius: 4px;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <h1>カメラストリーミング</h1>
+        <div class="camera-controls">
+            <select id="camera-select">
+                <option value="">カメラを選択してください</option>
+            </select>
+            <div id="camera-status" class="status"></div>
+        </div>
         <div class="video-container">
-            <img src="/video_feed" alt="カメラストリーム">
+            <img id="camera" src="/video_feed" alt="カメラストリーム">
             <div class="flash"></div>
         </div>
         <div class="status">

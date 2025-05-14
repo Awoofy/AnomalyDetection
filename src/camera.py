@@ -2,16 +2,51 @@ import cv2
 import numpy as np
 from threading import Thread, Lock
 import time
+import subprocess
+from typing import List, Dict
 
 class Camera:
-    def __init__(self, camera_id=0):
+    @staticmethod
+    def list_available_devices() -> List[Dict[str, str]]:
+        """利用可能なカメラデバイスの一覧を取得"""
+        try:
+            # v4l2-ctlコマンドの実行
+            result = subprocess.run(
+                ['v4l2-ctl', '--list-devices'],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+
+            devices = []
+            current_device = None
+
+            for line in result.stdout.split('\n'):
+                if ':' in line and 'dev' not in line:
+                    # デバイス名の行
+                    current_device = line.split(':')[0].strip()
+                elif '/dev/video' in line:
+                    # デバイスパスの行
+                    path = line.strip()
+                    if current_device:
+                        devices.append({
+                            'name': current_device,
+                            'path': path
+                        })
+
+            return devices
+        except subprocess.CalledProcessError as e:
+            print(f"Error listing devices: {e}")
+            return []
+
+    def __init__(self, device_path: str = "/dev/video0"):
         """カメラクラスの初期化"""
-        self.camera_id = camera_id
+        self.camera_id = device_path
         self.is_running = False
         self.lock = Lock()
         self.frame = None
         self.cap = None
-        self.thread = None  # スレッドの初期化を追加
+        self.thread = None
 
     def start(self):
         """カメラのキャプチャを開始"""

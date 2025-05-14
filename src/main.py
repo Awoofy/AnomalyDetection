@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Response, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import StreamingResponse, JSONResponse
 import asyncio
@@ -14,13 +14,13 @@ app.mount("/static", StaticFiles(directory="src/static"), name="static")
 
 # カメラインスタンスの初期化（環境変数からカメラIDを取得）
 # 環境変数の設定
-camera_id = int(os.getenv('CAMERA_ID', '1'))  # デフォルトでvideo1を使用
+camera_device = os.getenv('CAMERA_DEVICE', '/dev/video4')  # デフォルトでvideo0を使用
 CAPTURE_DIR = os.getenv('CAPTURE_DIR', 'captures')  # キャプチャ画像の保存ディレクトリ
 
 # キャプチャディレクトリの作成
 Path(CAPTURE_DIR).mkdir(parents=True, exist_ok=True)
 
-camera = Camera(camera_id=camera_id)
+camera = Camera(device_path=camera_device)
 
 @app.on_event("startup")
 async def startup_event():
@@ -76,6 +76,50 @@ async def capture():
             "status": "error",
             "message": "画像の保存に失敗しました"
         }, status_code=500)
+
+@app.get("/api/cameras")
+async def list_cameras():
+    """利用可能なカメラの一覧を返す"""
+    try:
+        devices = Camera.list_available_devices()
+        return {"devices": devices}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+from pydantic import BaseModel
+
+class CameraSelectRequest(BaseModel):
+    device_path: str
+
+@app.post("/api/camera/select")
+async def select_camera(request: CameraSelectRequest):
+    """カメラデバイスを切り替える"""
+    try:
+        device_path = request.device_path
+        
+        # 利用可能なデバイスの確認
+        available_devices = [dev["path"] for dev in Camera.list_available_devices()]
+        if device_path not in available_devices:
+            raise HTTPException(status_code=400, detail="指定されたカメラデバイスは利用できません")
+
+        # 現在のカメラを停止
+        camera.stop()
+        
+        try:
+            # 新しいデバイスでカメラを再初期化
+            camera.camera_id = device_path
+            camera.start()
+        except Exception as e:
+            # 新しいカメラの初期化に失敗した場合は元のカメラに戻す
+            camera.camera_id = camera_device
+            camera.start()
+            raise HTTPException(status_code=500, detail=f"カメラの切り替えに失敗しました: {str(e)}")
+        
+        return {"status": "success", "message": f"カメラを{device_path}に切り替えました"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"予期せぬエラーが発生しました: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

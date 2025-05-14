@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     libxrender-dev \
     curl \
     gnupg \
+    v4l-utils \
     && rm -rf /var/lib/apt/lists/*
 
 # Node.jsをインストール
