@@ -121,3 +121,59 @@ async def capture_frame():
 1. TypeScriptコードのコンパイル
 2. Webpackでのバンドル
 3. 最適化された単一JSファイルの生成
+
+## マルチカメラサポート
+
+### 1. Docker環境でのカメラ管理
+- Dockerコンテナでのデバイスアクセス
+  ```yaml
+  devices:
+    - "/dev:/dev"  # すべてのデバイスにアクセス可能
+  privileged: true  # デバイスアクセスの権限付与
+  group_add:
+    - video  # videoグループに追加
+  ```
+- v4l2-utilsを使用したデバイス管理
+  ```bash
+  v4l2-ctl --list-devices  # デバイス一覧の取得
+  ```
+
+### 2. カメラデバイスの検出と管理
+- バックエンドでの実装（Python/FastAPI）
+  ```python
+  @app.get("/api/cameras")
+  async def list_cameras():
+      # v4l2-ctlコマンドの実行と結果パース
+      devices = Camera.list_available_devices()
+      return {"devices": devices}
+  ```
+
+### 3. フロントエンド実装（TypeScript）
+- インターフェース定義
+  ```typescript
+  interface CameraDevice {
+      name: string;
+      path: string;
+  }
+  ```
+
+- カメラ選択UI
+  - プルダウンメニューでのデバイス選択
+  - 動的なストリーム切り替え
+  - エラー状態の表示
+
+### 4. カメラ切り替えの仕組み
+1. UIでカメラを選択
+2. バックエンドAPIにリクエスト送信
+3. カメラデバイスの切り替え
+4. ストリーミングの再初期化
+
+### 5. エラーハンドリング
+- デバイスアクセスエラー
+- ストリーム切り替えエラー
+- UIでのエラー表示
+
+### 6. 設計上の考慮点
+- スレッドセーフなカメラ制御
+- リソースの適切な解放
+- 非同期処理による応答性の確保
