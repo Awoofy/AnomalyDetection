@@ -121,6 +121,30 @@ async def select_camera(request: CameraSelectRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"予期せぬエラーが発生しました: {str(e)}")
 
+# 解像度設定用のモデル
+class ResolutionRequest(BaseModel):
+    width: int
+    height: int
+
+@app.get("/api/camera/resolutions")
+async def get_resolutions():
+    """カメラがサポートする解像度一覧を取得"""
+    try:
+        resolutions = camera.get_supported_resolutions()
+        return {"resolutions": resolutions}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/camera/resolution")
+async def set_resolution(request: ResolutionRequest):
+    """カメラの解像度を設定"""
+    try:
+        if camera.set_resolution(request.width, request.height):
+            return {"message": f"解像度を{request.width}x{request.height}に設定しました"}
+        raise HTTPException(status_code=500, detail="解像度の設定に失敗しました")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("src.main:app", host="0.0.0.0", port=8000, reload=True)
