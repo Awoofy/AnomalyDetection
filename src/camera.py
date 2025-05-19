@@ -2,15 +2,28 @@ import cv2
 import numpy as np
 from threading import Thread, Lock
 import time
+import re
 import subprocess
+import logging
 from typing import List, Dict
 
+# ロガーの設定
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+
 class Camera:
+    # ロガーの設定
+    logger = logging.getLogger(__name__)
+    
+    # Device Capsのパターン（スペースを柔軟に処理）
+    VIDEO_CAPS_PATTERN = re.compile(r'Device\s+Caps\s*:\s*0x04200001')
     @staticmethod
     def list_available_devices() -> List[Dict[str, str]]:
-        """利用可能なカメラデバイスの一覧を取得"""
+        """ビデオキャプチャ可能なカメラデバイスの一覧を取得"""
         try:
-            # v4l2-ctlコマンドの実行
+            # デバイス一覧の取得
             result = subprocess.run(
                 ['v4l2-ctl', '--list-devices'],
                 capture_output=True,
@@ -23,20 +36,31 @@ class Camera:
 
             for line in result.stdout.split('\n'):
                 if ':' in line and 'dev' not in line:
-                    # デバイス名の行
+                    # 新しいデバイスの開始
                     current_device = line.split(':')[0].strip()
                 elif '/dev/video' in line:
-                    # デバイスパスの行
-                    path = line.strip()
-                    if current_device:
+                    device_path = line.strip()
+                    # Device Capsの確認
+                    caps_result = subprocess.run(
+                        ['v4l2-ctl', '-d', device_path, '-D'],
+                        capture_output=True,
+                        text=True
+                    )
+                    
+                    if (caps_result.returncode == 0 and
+                        Camera.VIDEO_CAPS_PATTERN.search(caps_result.stdout)):
+                        # ビデオキャプチャ可能なデバイスのみ追加
                         devices.append({
-                            'name': current_device,
-                            'path': path
+                            'name': f"{current_device} ({device_path})",
+                            'path': device_path
                         })
 
             return devices
         except subprocess.CalledProcessError as e:
-            print(f"Error listing devices: {e}")
+            Camera.logger.error(f"デバイス一覧の取得に失敗: {e}")
+            return []
+        except Exception as e:
+            Camera.logger.error(f"予期せぬエラーが発生: {e}")
             return []
 
     def __init__(self, device_path: str = "/dev/video0"):
@@ -121,7 +145,7 @@ class Camera:
             # 画像を保存
             return cv2.imwrite(save_path, frame)
         except Exception as e:
-            print(f"画像の保存に失敗: {str(e)}")
+            Camera.logger.error(f"画像の保存に失敗: {str(e)}")
             return False
 
     def __del__(self):
