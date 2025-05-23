@@ -6,3 +6,12 @@ export interface CameraDevice {
 export interface ApiResponse {
     devices: CameraDevice[];
 }
+
+export interface Resolution {
+    width: number;
+    height: number;
+}
+
+export interface ResolutionsApiResponse {
+    resolutions: Resolution[];
+}

@@ -14,7 +14,7 @@ app.mount("/static", StaticFiles(directory="src/static"), name="static")
 
 # カメラインスタンスの初期化（環境変数からカメラIDを取得）
 # 環境変数の設定
-camera_device = os.getenv('CAMERA_DEVICE', '/dev/video4')  # デフォルトでvideo0を使用
+camera_device = os.getenv('CAMERA_DEVICE', '/dev/video0')  # デフォルトでvideo0を使用
 CAPTURE_DIR = os.getenv('CAPTURE_DIR', 'captures')  # キャプチャ画像の保存ディレクトリ
 
 # キャプチャディレクトリの作成

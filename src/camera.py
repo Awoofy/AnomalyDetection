@@ -171,10 +171,12 @@ class Camera:
                     size_str = line.split(':')[1].strip()
                     if 'x' in size_str:
                         width, height = map(int, size_str.split()[-1].split('x'))
-                        resolutions.append({
-                            'width': width,
-                            'height': height
-                        })
+                        # 既に同じ解像度がなければ追加
+                        if not any(r['width'] == width and r['height'] == height for r in resolutions):
+                            resolutions.append({
+                                'width': width,
+                                'height': height
+                            })
             
             return resolutions
             
@@ -185,30 +187,88 @@ class Camera:
     def set_resolution(self, width: int, height: int) -> bool:
         """カメラの解像度を設定"""
         try:
+            self.logger.info(f"解像度を {width}x{height} に設定しようとしています。現在のカメラID: {self.camera_id}")
             # 現在のカメラを停止
-            if self.cap is not None:
+            if self.is_running:
                 self.stop()
             
+            if self.cap is not None:
+                self.cap.release()
+                self.cap = None
+            
+            # デバイスが解放されるのを少し待つ
+            time.sleep(0.5) 
+
             # 新しい解像度で再初期化
             self.cap = cv2.VideoCapture(self.camera_id)
+            if not self.cap.isOpened():
+                self.logger.error(f"新しい解像度でのカメラ再初期化に失敗: カメラID {self.camera_id} を開けません。")
+                # 失敗した場合、元の設定でカメラを再起動試行
+                self.start_camera_with_current_settings()
+                return False
+
             self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
             self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
             
             # 設定の確認
-            actual_width = self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-            actual_height = self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+            actual_width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            actual_height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
             
+            self.logger.info(f"要求解像度: {width}x{height}, 実際のカメラ解像度: {actual_width}x{actual_height}")
+
             if abs(width - actual_width) > 1 or abs(height - actual_height) > 1:
-                self.logger.warning(f"要求された解像度と実際の解像度が異なります: "
-                                f"要求={width}x{height}, 実際={actual_width}x{actual_height}")
+                self.logger.warning(f"要求された解像度({width}x{height})と実際の解像度({actual_width}x{actual_height})が異なります。")
+                # 解像度設定に失敗したとみなし、カメラを解放して元の設定で再起動
+                self.cap.release()
+                self.cap = None
+                self.start_camera_with_current_settings()
+                return False
             
             # カメラを再開
-            self.start()
+            self.is_running = True # start()の前にis_runningをTrueにする
+            self.thread = Thread(target=self._capture_loop, daemon=True)
+            self.thread.start()
+            
+            if not self.is_running or self.frame is None:
+                 # キャプチャループが開始して最初のフレームを取得するまで少し待つ
+                time.sleep(1) # 1秒待つ、必要に応じて調整
+                if not self.is_running: # それでもダメならエラー
+                    self.logger.error("解像度変更後、カメラの再起動に失敗しました。")
+                    self.start_camera_with_current_settings() # 元の設定で戻す試み
+                    return False
+
+            self.logger.info(f"解像度を{actual_width}x{actual_height}に正常に設定しました。")
             return True
             
         except Exception as e:
-            self.logger.error(f"解像度の設定中にエラー: {e}")
+            self.logger.error(f"解像度の設定中に予期せぬエラー: {e}", exc_info=True)
+            # エラー発生時も元の設定でカメラを再起動試行
+            self.start_camera_with_current_settings()
             return False
+
+    def start_camera_with_current_settings(self):
+        """現在のcamera_idとデフォルト解像度でカメラを起動する試み"""
+        try:
+            self.logger.info(f"元の設定でカメラ ({self.camera_id}) を再起動しようとしています。")
+            if self.cap is not None:
+                self.cap.release()
+                self.cap = None
+            # 環境変数から再度デフォルトデバイスを取得するか、あるいはクラス初期化時のデバイスパスを保持しておく
+            # ここでは、現在の self.camera_id をそのまま使う
+            self.cap = cv2.VideoCapture(self.camera_id)
+            if not self.cap.isOpened():
+                self.logger.error(f"元の設定でのカメラ再起動に失敗: カメラID {self.camera_id} を開けません。")
+                return
+            # デフォルトの解像度に戻す (あるいは何もしないでカメラのデフォルトに任せる)
+            # self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, DEFAULT_WIDTH) 
+            # self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, DEFAULT_HEIGHT)
+            
+            self.is_running = True
+            self.thread = Thread(target=self._capture_loop, daemon=True)
+            self.thread.start()
+            self.logger.info(f"カメラ ({self.camera_id}) を元の設定で再起動しました。")
+        except Exception as e_restart:
+            self.logger.error(f"元の設定でのカメラ再起動中にエラー: {e_restart}", exc_info=True)
 
     def __del__(self):
         """デストラクタ: リソースの解放"""
