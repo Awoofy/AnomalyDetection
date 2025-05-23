@@ -1,6 +1,12 @@
 # キャプチャ画像は追跡しない
 captures/
 
+# デバッグログは追跡しない
+plans/
+
+# 個人参照用のdocsフォルダは追跡しない
+docs/
+
 # Node.js
 node_modules/
 dist/
